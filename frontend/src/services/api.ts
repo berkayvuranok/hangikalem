@@ -17,7 +17,10 @@ import type {
   WizardAnswers,
 } from '@/types'
 
+import { catalogApi } from '@/services/catalogApi'
+
 const base = import.meta.env.VITE_API_URL ?? ''
+const useCatalog = !base
 
 async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const token = useAuthStore.getState().accessToken
@@ -66,46 +69,46 @@ function qs(filters: Record<string, string | number | undefined | null>): string
   return s ? `?${s}` : ''
 }
 
-export const api = {
-  pens: (filters: PenFilters = {}) => request<PaginatedPens>(`/api/pens${qs(filters)}`),
-  pen: (slug: string) => request<Pen>(`/api/pens/${slug}`),
-  popular: () => request<{ items: Pen[] }>('/api/pens/popular'),
-  brands: () => request<{ items: Brand[] }>('/api/brands'),
-  brand: (slug: string) => request<Brand>(`/api/brands/${slug}`),
-  search: (q: string) => request<SearchResult>(`/api/search?q=${encodeURIComponent(q)}`),
-  recommend: (body: WizardAnswers) =>
-    request<{ recommendations: RecommendationItem[] }>('/api/recommendations', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  fit: (slug: string, body: WizardAnswers) =>
-    request<FitBreakdown>(`/api/pens/${slug}/fit`, { method: 'POST', body: JSON.stringify(body) }),
-  compare: (slugs: string[]) =>
-    request<CompareResponse>('/api/compare', { method: 'POST', body: JSON.stringify({ slugs }) }),
-  guides: () => request<{ items: GuideItem[] }>('/api/guides'),
-  reviews: (slug: string) => request<{ items: Review[] }>(`/api/pens/${slug}/reviews`),
-  createReview: (slug: string, body: { rating: number; title?: string; body: string }) =>
-    request<Review>(`/api/pens/${slug}/reviews`, { method: 'POST', body: JSON.stringify(body) }),
-  recentReviews: () => request<{ items: Review[] }>('/api/reviews/recent'),
-  favorites: () => request<{ items: Pen[] }>('/api/favorites'),
-  addFavorite: (penId: string) =>
-    request<void>(`/api/favorites/${penId}`, { method: 'POST' }),
-  removeFavorite: (penId: string) =>
-    request<void>(`/api/favorites/${penId}`, { method: 'DELETE' }),
-  login: (email: string, password: string) =>
-    request<{ access_token: string; user: User }>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
-  register: (name: string, email: string, password: string) =>
-    request<{ access_token: string; user: User }>('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password }),
-    }),
-  logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
-  me: () => request<User>('/api/auth/me'),
-  adminUsers: () => request<{ items: AdminUser[] }>('/api/admin/users'),
-  adminTables: () => request<{ items: AdminTable[] }>('/api/admin/db'),
-  adminTable: (name: string, q: { limit?: number; offset?: number } = {}) =>
-    request<AdminTableRows>(`/api/admin/db/${name}${qs(q)}`),
-}
+export const api = useCatalog
+  ? catalogApi
+  : {
+      pens: (filters: PenFilters = {}) => request<PaginatedPens>(`/api/pens${qs(filters)}`),
+      pen: (slug: string) => request<Pen>(`/api/pens/${slug}`),
+      popular: () => request<{ items: Pen[] }>('/api/pens/popular'),
+      brands: () => request<{ items: Brand[] }>('/api/brands'),
+      brand: (slug: string) => request<Brand>(`/api/brands/${slug}`),
+      search: (q: string) => request<SearchResult>(`/api/search?q=${encodeURIComponent(q)}`),
+      recommend: (body: WizardAnswers) =>
+        request<{ recommendations: RecommendationItem[] }>('/api/recommendations', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      fit: (slug: string, body: WizardAnswers) =>
+        request<FitBreakdown>(`/api/pens/${slug}/fit`, { method: 'POST', body: JSON.stringify(body) }),
+      compare: (slugs: string[]) =>
+        request<CompareResponse>('/api/compare', { method: 'POST', body: JSON.stringify({ slugs }) }),
+      guides: () => request<{ items: GuideItem[] }>('/api/guides'),
+      reviews: (slug: string) => request<{ items: Review[] }>(`/api/pens/${slug}/reviews`),
+      createReview: (slug: string, body: { rating: number; title?: string; body: string }) =>
+        request<Review>(`/api/pens/${slug}/reviews`, { method: 'POST', body: JSON.stringify(body) }),
+      recentReviews: () => request<{ items: Review[] }>('/api/reviews/recent'),
+      favorites: () => request<{ items: Pen[] }>('/api/favorites'),
+      addFavorite: (penId: string) => request<void>(`/api/favorites/${penId}`, { method: 'POST' }),
+      removeFavorite: (penId: string) => request<void>(`/api/favorites/${penId}`, { method: 'DELETE' }),
+      login: (email: string, password: string) =>
+        request<{ access_token: string; user: User }>('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        }),
+      register: (name: string, email: string, password: string) =>
+        request<{ access_token: string; user: User }>('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ name, email, password }),
+        }),
+      logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
+      me: () => request<User>('/api/auth/me'),
+      adminUsers: () => request<{ items: AdminUser[] }>('/api/admin/users'),
+      adminTables: () => request<{ items: AdminTable[] }>('/api/admin/db'),
+      adminTable: (name: string, q: { limit?: number; offset?: number } = {}) =>
+        request<AdminTableRows>(`/api/admin/db/${name}${qs(q)}`),
+    }

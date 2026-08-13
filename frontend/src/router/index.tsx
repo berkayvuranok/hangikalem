@@ -13,50 +13,55 @@ import { BrandPage } from '@/pages/Brands/BrandPage'
 import { FindPage } from '@/pages/Recommendation/FindPage'
 import { createBrowserRouter } from 'react-router-dom'
 
-export const router = createBrowserRouter([
-  {
-    element: <Layout />,
-    children: [
-      { path: '/', element: <HomePage /> },
-      { path: '/pens', element: <PensPage /> },
-      { path: '/pens/:slug', element: <PenDetailPage /> },
-      { path: '/brands/:slug', element: <BrandPage /> },
-      { path: '/find', element: <FindPage /> },
-      { path: '/compare', element: <ComparePage /> },
-      { path: '/login', element: <LoginPage /> },
-      { path: '/register', element: <RegisterPage /> },
-      {
-        path: '/profile',
-        element: (
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: '/favorites',
-        element: (
-          <ProtectedRoute>
-            <FavoritesPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: '/admin/users',
-        element: (
-          <ProtectedRoute admin>
-            <AdminUsersPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: '/admin/db',
-        element: (
-          <ProtectedRoute admin>
-            <AdminDbPage />
-          </ProtectedRoute>
-        ),
-      },
-    ],
-  },
-])
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+
+export const router = createBrowserRouter(
+  [
+    {
+      element: <Layout />,
+      children: [
+        { path: '/', element: <HomePage /> },
+        { path: '/pens', element: <PensPage /> },
+        { path: '/pens/:slug', element: <PenDetailPage /> },
+        { path: '/brands/:slug', element: <BrandPage /> },
+        { path: '/find', element: <FindPage /> },
+        { path: '/compare', element: <ComparePage /> },
+        { path: '/login', element: <LoginPage /> },
+        { path: '/register', element: <RegisterPage /> },
+        {
+          path: '/profile',
+          element: (
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: '/favorites',
+          element: (
+            <ProtectedRoute>
+              <FavoritesPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: '/admin/users',
+          element: (
+            <ProtectedRoute admin>
+              <AdminUsersPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: '/admin/db',
+          element: (
+            <ProtectedRoute admin>
+              <AdminDbPage />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
+  ],
+  { basename },
+)

@@ -211,8 +211,8 @@ export function HomePage() {
         <section className="mx-auto max-w-6xl px-4 py-16">
           <SectionHeading
             eyebrow="Katalog"
-            title={`${catalogTotal || 'Tüm'} kalem, API’den`}
-            body="Liste statik değil. Keşif sayfasındaki her model canlı katalogdan geliyor."
+            title="Katalog canlı API’den geliyor"
+            body={catalogTotal ? `${catalogTotal} model. Keşif sayfasındaki her kalem aynı uçtan.` : 'Keşif sayfasındaki her model canlı katalogdan geliyor.'}
           />
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {catalogItems.slice(0, 8).map((p) => (

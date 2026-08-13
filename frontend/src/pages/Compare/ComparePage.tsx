@@ -40,7 +40,7 @@ export function ComparePage() {
   const groups = groupOrder
     .map((key) => {
       const rows = metrics.filter((m) => m.group === key)
-      return rows.length ? { key, label: rows[0].group_label, rows } : null
+      return rows.length ? { key, label: rows[0]?.group_label ?? key, rows } : null
     })
     .filter((g): g is { key: string; label: string; rows: typeof metrics } => Boolean(g))
 
