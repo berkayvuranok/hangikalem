@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/Button'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useWizardStore } from '@/stores/wizardStore'
-import { purposeLabels } from '@/utils/format'
+import { inkLabels, purposeLabels } from '@/utils/format'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -37,7 +37,7 @@ export function ProfilePage() {
             <div className="mt-6 rounded-2xl border border-[var(--line)] p-6 text-sm">
               <p className="font-medium">Son sihirbaz özeti</p>
               <p className="mt-2 text-[var(--muted)]">
-                {purposeLabels[answers.purpose]} · ₺{answers.budget} · {answers.ink_type}
+                {purposeLabels[answers.purpose]} · ₺{answers.budget} · {inkLabels[answers.ink_type] ?? answers.ink_type}
               </p>
               <Link to="/find" className="mt-3 inline-block text-xs underline">
                 Tercihleri güncelle
