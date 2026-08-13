@@ -1,4 +1,3 @@
-import catalog from '@/data/catalog.json'
 import type {
   Brand,
   CompareResponse,
@@ -14,8 +13,42 @@ import type {
   WizardAnswers,
 } from '@/types'
 
-const pens = catalog.pens as Pen[]
-const brands = catalog.brands as Brand[]
+const CATALOG_URLS = [
+  `${import.meta.env.BASE_URL}catalog.json`,
+  'https://cdn.jsdelivr.net/gh/berkayvuranok/hangikalem@main/frontend/src/data/catalog.json',
+]
+
+let pens: Pen[] = []
+let brands: Brand[] = []
+let catalogReady: Promise<void> | null = null
+
+async function loadCatalog() {
+  if (pens.length) return
+  if (!catalogReady) {
+    catalogReady = (async () => {
+      let last = 'Katalog yüklenemedi'
+      for (const url of CATALOG_URLS) {
+        try {
+          const res = await fetch(url)
+          if (!res.ok) {
+            last = `Katalog yüklenemedi (${res.status})`
+            continue
+          }
+          const data = (await res.json()) as { pens: Pen[]; brands: Brand[] }
+          if (data.pens?.length) {
+            pens = data.pens
+            brands = data.brands ?? []
+            return
+          }
+        } catch (err) {
+          last = err instanceof Error ? err.message : last
+        }
+      }
+      throw new Error(last)
+    })()
+  }
+  await catalogReady
+}
 
 function q(brand: string, name: string) {
   return encodeURIComponent(`${brand} ${name}`.trim())
@@ -180,6 +213,7 @@ function favKey() {
 
 export const catalogApi = {
   async pens(filters: PenFilters = {}): Promise<PaginatedPens> {
+    await loadCatalog()
     const filtered = pens.filter((p) => matchPen(p, filters)).map(withLinks)
     const limit = Math.min(filters.limit ?? 200, 500)
     const page = Math.max(1, filters.page ?? 1)
@@ -187,23 +221,28 @@ export const catalogApi = {
     return { items: filtered.slice(start, start + limit), total: filtered.length, page, limit }
   },
   async pen(slug: string): Promise<Pen> {
+    await loadCatalog()
     const p = pens.find((x) => x.slug === slug)
     if (!p) throw new Error('Kalem bulunamadı')
     return withLinks(p)
   },
   async popular() {
+    await loadCatalog()
     const items = [...pens].sort((a, b) => b.avg_rating * 10 + b.review_count - (a.avg_rating * 10 + a.review_count)).slice(0, 16).map(withLinks)
     return { items }
   },
   async brands() {
+    await loadCatalog()
     return { items: brands }
   },
   async brand(slug: string): Promise<Brand> {
+    await loadCatalog()
     const b = brands.find((x) => x.slug === slug)
     if (!b) throw new Error('Marka bulunamadı')
     return b
   },
   async search(q: string): Promise<SearchResult> {
+    await loadCatalog()
     const s = q.trim().toLowerCase()
     if (s.length < 2) return { brands: [], pens: [] }
     return {
@@ -212,9 +251,11 @@ export const catalogApi = {
     }
   },
   async recommend(body: WizardAnswers) {
+    await loadCatalog()
     return { recommendations: recommend(body) }
   },
   async fit(slug: string, body: WizardAnswers): Promise<FitBreakdown> {
+    await loadCatalog()
     const p = pens.find((x) => x.slug === slug)
     if (!p) throw new Error('Kalem bulunamadı')
     const smoothness = Math.round(clamp(100 - Math.abs(body.smoothness - p.smoothness_score) * 10, 0, 100))
@@ -225,6 +266,7 @@ export const catalogApi = {
     return { comfort, smoothness, budget, weight, overall: Math.round((comfort + smoothness + budget + weight) / 4) }
   },
   async compare(slugs: string[]): Promise<CompareResponse> {
+    await loadCatalog()
     const selected = slugs.map((s) => pens.find((p) => p.slug === s)).filter((p): p is Pen => Boolean(p))
     if (selected.length < 2) throw new Error('En az 2 kalem seç')
     const first = selected[0]
@@ -268,6 +310,7 @@ export const catalogApi = {
     }
   },
   async guides(): Promise<{ items: GuideItem[] }> {
+    await loadCatalog()
     const items = guidePresets.map((g) => {
       const recs = recommend(g.req)
       const winner = recs[0]?.pen
@@ -292,6 +335,7 @@ export const catalogApi = {
     return { items: [] }
   },
   async favorites(): Promise<{ items: Pen[] }> {
+    await loadCatalog()
     const ids = JSON.parse(localStorage.getItem(favKey()) || '[]') as string[]
     return { items: pens.filter((p) => ids.includes(p.id)).map(withLinks) }
   },
@@ -331,9 +375,11 @@ export const catalogApi = {
     }
   },
   async adminTables() {
+    await loadCatalog()
     return { items: [{ name: 'pens', rows: pens.length }, { name: 'brands', rows: brands.length }] }
   },
   async adminTable() {
+    await loadCatalog()
     return { name: 'pens', columns: ['slug', 'name', 'brand_name', 'price'], items: pens.slice(0, 50) as unknown as Record<string, unknown>[], total: pens.length, limit: 50, offset: 0 }
   },
 }
