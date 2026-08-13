@@ -1,0 +1,28 @@
+# env
+.env
+.env.local
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.oxlintcache
+
+# backend
+backend/bin/
+backend/tmp/
+backend/server
+*.exe
+
+# docker volumes
+postgres-data/
+redis-data/
