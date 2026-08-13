@@ -51,7 +51,17 @@ func SearchCommonsImage(ctx context.Context, query string) (string, error) {
 	bestScore := 0
 	for _, p := range payload.Query.Pages {
 		title := strings.ToLower(p.Title)
-		if strings.Contains(title, "collage") || strings.Contains(title, "collection") || strings.Contains(title, "fun pen day") || strings.Contains(title, "zeitung") || strings.Contains(title, "newspaper") || strings.Contains(title, "giornale") || strings.Contains(title, "magazine") {
+		if strings.Contains(title, "collage") || strings.Contains(title, "collection") || strings.Contains(title, "fun pen day") || strings.Contains(title, "zeitung") || strings.Contains(title, "newspaper") || strings.Contains(title, "giornale") || strings.Contains(title, "magazine") || strings.Contains(title, ".djvu") || strings.Contains(title, ".pdf") || strings.Contains(title, "page1") {
+			continue
+		}
+		brandHit := false
+		for _, part := range keys {
+			if len(part) >= 4 && strings.Contains(title, part) && part != "fountain" && part != "ballpoint" {
+				brandHit = true
+				break
+			}
+		}
+		if !brandHit {
 			continue
 		}
 		if len(p.ImageInfo) == 0 {

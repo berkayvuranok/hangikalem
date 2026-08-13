@@ -101,17 +101,60 @@ BRAND_DESC = {
     "graf-von-faber": "Faber-Castell’in lüks hattı.",
 }
 
-BAD_IMAGE = (
-    "collage",
-    "collection",
-    "newspaper",
-    "zeitung",
-    "giornale",
-    "magazine",
-    "daily_times",
-    "victoria_daily",
-    "fun_pen",
-    "logo.svg",
+BRAND_KEYS = {
+    "uni": ["uni", "uniball", "uni-ball", "uni_ball"],
+    "pilot": ["pilot"],
+    "lamy": ["lamy"],
+    "pentel": ["pentel", "energel"],
+    "zebra": ["zebra", "sarasa"],
+    "parker": ["parker"],
+    "kaweco": ["kaweco"],
+    "rotring": ["rotring"],
+    "tombow": ["tombow"],
+    "faber-castell": ["faber", "castell"],
+    "sailor": ["sailor"],
+    "caran-dache": ["caran", "dache"],
+    "staedtler": ["staedtler"],
+    "muji": ["muji"],
+    "cross": ["cross"],
+    "bic": ["bic", "cristal"],
+    "platinum": ["platinum", "preppy", "plaisir", "prefounte"],
+    "twsbi": ["twsbi"],
+    "pelikan": ["pelikan"],
+    "waterman": ["waterman"],
+    "montblanc": ["montblanc", "meisterstuck"],
+    "sakura": ["sakura", "gelly"],
+    "paper-mate": ["papermate", "paper_mate", "paper-mate", "inkjoy"],
+    "schneider": ["schneider"],
+    "ohto": ["ohto"],
+    "serve": ["serve"],
+    "adel": ["adel"],
+    "diplomat": ["diplomat"],
+    "fisher": ["fisher"],
+    "jinhao": ["jinhao"],
+    "hongdian": ["hongdian"],
+    "sheaffer": ["sheaffer"],
+    "leuchtturm": ["leuchtturm", "drehgriffel"],
+    "sharpie": ["sharpie"],
+    "stabilo": ["stabilo"],
+    "monami": ["monami"],
+    "graf-von-faber": ["faber", "graf"],
+}
+
+WEAK_TOKENS = {
+    "large", "standard", "slim", "light", "classic", "century", "easy", "bold",
+    "student", "urban", "studio", "forest", "logo", "twist", "special", "expert",
+    "juice", "explorer", "elite", "micro", "change", "casual", "power", "tank",
+    "style", "fit", "grip", "super", "ball", "pen", "gel", "ink", "clip", "type",
+    "black", "white", "mini", "pro", "gear", "the", "and", "for", "roll", "roller",
+}
+
+JUNK = (
+    "collage", "collection", "newspaper", "zeitung", "giornale", "magazine",
+    "daily_times", "victoria_daily", "fun_pen", ".djvu", ".pdf", "page1-",
+    "album_cover", "aerial_view", "high_school", "census", "rainforest",
+    "statutes", "world_in_", "newtonian", "japangp",
+    "pentip", "pen_tip",
 )
 
 
@@ -124,11 +167,32 @@ def get_json(url: str, timeout: float = 12) -> dict | None:
         return None
 
 
-def is_photo(url: str | None) -> bool:
+def haystack(url: str) -> str:
+    return urllib.parse.unquote(url).lower().replace("-", " ").replace("_", " ")
+
+
+def model_tokens(name: str) -> list[str]:
+    return [t for t in re.findall(r"[a-zA-Z]{3,}|\d{2,}", name.lower()) if t not in WEAK_TOKENS]
+
+
+def is_trusted(url: str | None, brand_slug: str, name: str) -> bool:
     if not url or not url.startswith("http"):
         return False
     low = url.lower()
-    return not any(part in low for part in BAD_IMAGE)
+    if any(part in low for part in JUNK):
+        return False
+    text = haystack(url)
+    brands = BRAND_KEYS.get(brand_slug, [brand_slug])
+    has_brand = any(b.replace("-", " ") in text or b.replace("-", "") in text for b in brands)
+    strong = [t for t in model_tokens(name) if t in text]
+    name_bits = [t for t in re.findall(r"[a-zA-Z]{4,}|\d{2,}", name.lower()) if t in text]
+    if strong and (has_brand or max(len(t) for t in strong) >= 5):
+        return True
+    if has_brand and name_bits:
+        return True
+    if has_brand and not model_tokens(name) and ("pen" in text or "fountain" in text or "ballpoint" in text):
+        return True
+    return False
 
 
 def split_go_args(body: str) -> list[str]:
@@ -344,25 +408,11 @@ def load_from_api() -> dict | None:
     return {"pens": pens, "brands": brands}
 
 
-def wiki_image(brand: str, name: str) -> str:
-    titles = [f"{brand} {name}", f"{brand} {name.split()[0]}", name]
-    for host in ("https://en.wikipedia.org", "https://tr.wikipedia.org"):
-        for title in titles:
-            path = urllib.parse.quote(title.replace(" ", "_"), safe="")
-            data = get_json(f"{host}/api/rest_v1/page/summary/{path}")
-            if not data:
-                continue
-            src = ""
-            if isinstance(data.get("originalimage"), dict):
-                src = data["originalimage"].get("source") or ""
-            if not src and isinstance(data.get("thumbnail"), dict):
-                src = data["thumbnail"].get("source") or ""
-            if is_photo(src):
-                return src
-    return ""
-
-
-def commons_image(query: str) -> str:
+def commons_image(pen: dict) -> str:
+    brand = pen.get("brand_name") or ""
+    name = pen.get("name") or ""
+    slug = pen.get("brand_slug") or ""
+    query = f'"{brand} {name}" pen'
     params = urllib.parse.urlencode(
         {
             "action": "query",
@@ -370,7 +420,7 @@ def commons_image(query: str) -> str:
             "generator": "search",
             "gsrsearch": query,
             "gsrnamespace": "6",
-            "gsrlimit": "8",
+            "gsrlimit": "10",
             "prop": "imageinfo",
             "iiprop": "url",
             "iiurlwidth": "800",
@@ -380,48 +430,30 @@ def commons_image(query: str) -> str:
     if not data:
         return ""
     pages = (data.get("query") or {}).get("pages") or {}
-    generic = {"pen", "pens", "fountain", "gel", "ink", "ballpoint", "mechanical", "pencil", "clip"}
-    keys = [p.strip(".-") for p in query.lower().split() if len(p.strip(".-")) >= 3 and p.strip(".-") not in generic]
-    best, best_score = "", 0
     for page in pages.values():
-        title = str(page.get("title") or "").lower()
-        if any(bad in title for bad in BAD_IMAGE):
-            continue
         info = (page.get("imageinfo") or [{}])[0]
         src = info.get("thumburl") or info.get("url") or ""
-        if not is_photo(src):
-            continue
-        score = 0
-        matched_long = False
-        for part in keys:
-            if part in title:
-                score += 2
-                if len(part) >= 4:
-                    matched_long = True
-        if score == 0 or (any(len(p) >= 4 for p in keys) and not matched_long):
-            continue
-        if score > best_score:
-            best, best_score = src, score
-    return best
+        if is_trusted(src, slug, name):
+            return src.split("?")[0]
+    return ""
 
 
-def resolve_image(pen: dict) -> str:
-    current = pen.get("image_url") or ""
-    if is_photo(current):
-        return current
-    brand = pen.get("brand_name") or ""
-    name = pen.get("name") or ""
-    return wiki_image(brand, name) or commons_image(f"{brand} {name} pen") or current
+def drop_bad_photos(pens: list[dict], hex_by_slug: dict[str, str]) -> None:
+    for p in pens:
+        if is_trusted(p.get("image_url"), p.get("brand_slug") or "", p.get("name") or ""):
+            p["image_url"] = str(p["image_url"]).split("?")[0]
+            continue
+        p["image_url"] = hex_by_slug.get(p.get("slug") or "", "#1E3A5F")
 
 
 def enrich_images(pens: list[dict]) -> None:
-    missing = [p for p in pens if not is_photo(p.get("image_url"))]
+    missing = [p for p in pens if not is_trusted(p.get("image_url"), p.get("brand_slug") or "", p.get("name") or "")]
     if not missing:
         return
-    print(f"enriching {len(missing)} photos…", flush=True)
+    print(f"commons: {len(missing)} kalem aranıyor…", flush=True)
     found = 0
     with ThreadPoolExecutor(max_workers=6) as pool:
-        futs = {pool.submit(resolve_image, p): p for p in missing}
+        futs = {pool.submit(commons_image, p): p for p in missing}
         for i, fut in enumerate(as_completed(futs), 1):
             pen = futs[fut]
             try:
@@ -429,11 +461,11 @@ def enrich_images(pens: list[dict]) -> None:
             except Exception as exc:
                 print(f"  {pen.get('slug')}: {exc}", file=sys.stderr)
                 continue
-            if is_photo(url):
+            if is_trusted(url, pen.get("brand_slug") or "", pen.get("name") or ""):
                 pen["image_url"] = url
                 found += 1
             if i % 25 == 0 or i == len(missing):
-                print(f"  {i}/{len(missing)} ({found} bulundu)", flush=True)
+                print(f"  {i}/{len(missing)} ({found} doğru eşleşme)", flush=True)
 
 
 def write_catalog(data: dict) -> None:
@@ -441,17 +473,28 @@ def write_catalog(data: dict) -> None:
     for path in (OUT_SRC, OUT_PUBLIC):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(payload, encoding="utf-8")
-    http = sum(1 for p in data["pens"] if is_photo(p.get("image_url")))
-    print(f"wrote {len(data['pens'])} pens, {len(data['brands'])} brands, {http} photos -> {OUT_SRC}")
+    http = sum(
+        1
+        for p in data["pens"]
+        if is_trusted(p.get("image_url"), p.get("brand_slug") or "", p.get("name") or "")
+    )
+    print(f"wrote {len(data['pens'])} pens, {len(data['brands'])} brands, {http} trusted photos -> {OUT_SRC}")
 
 
 def main() -> None:
+    seed = load_from_seed()
+    hex_by_slug = {
+        p["slug"]: p["image_url"]
+        for p in seed["pens"]
+        if str(p.get("image_url") or "").startswith("#")
+    }
     data = load_from_api()
     if data:
         print(f"api: {len(data['pens'])} pens")
     else:
         print("api yok, seed dosyalarından okunuyor")
-        data = load_from_seed()
+        data = seed
+    drop_bad_photos(data["pens"], hex_by_slug)
     enrich_images(data["pens"])
     write_catalog(data)
 
