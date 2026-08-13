@@ -37,7 +37,7 @@ func (a *API) ListPens(c *gin.Context) {
 		MaxWeight: service.ParseFloatQuery(c.Query("max_weight")),
 		MinRating: service.ParseFloatQuery(c.Query("min_rating")),
 		Page:      service.ParseIntQuery(c.Query("page"), 1),
-		Limit:     service.ParseIntQuery(c.Query("limit"), 12),
+		Limit:     service.ParseIntQuery(c.Query("limit"), 200),
 	}
 	res, err := a.Pens.List(c.Request.Context(), f)
 	if err != nil {
@@ -57,7 +57,7 @@ func (a *API) GetPen(c *gin.Context) {
 }
 
 func (a *API) Popular(c *gin.Context) {
-	res, err := a.Pens.Popular(c.Request.Context(), 8)
+	res, err := a.Pens.Popular(c.Request.Context(), 16)
 	if err != nil {
 		utils.JSONError(c, http.StatusInternalServerError, "Popüler kalemler yüklenemedi")
 		return

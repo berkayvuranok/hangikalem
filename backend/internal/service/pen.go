@@ -49,10 +49,10 @@ func (s *PenService) List(ctx context.Context, f PenFilter) (model.PaginatedPens
 		f.Page = 1
 	}
 	if f.Limit < 1 {
-		f.Limit = 12
+		f.Limit = 200
 	}
-	if f.Limit > 48 {
-		f.Limit = 48
+	if f.Limit > 500 {
+		f.Limit = 500
 	}
 	lp := toListParams(f)
 	rows, err := s.store.ListPens(ctx, lp)

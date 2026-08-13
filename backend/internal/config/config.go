@@ -13,6 +13,7 @@ type Config struct {
 	RedisURL        string
 	JWTSecret       string
 	FrontendURL     string
+	StaticDir       string
 	Env             string
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
@@ -28,6 +29,7 @@ func Load() Config {
 		RedisURL:        get("REDIS_URL", "redis://localhost:6379"),
 		JWTSecret:       get("JWT_SECRET", "dev-only-change-in-production"),
 		FrontendURL:     get("FRONTEND_URL", "http://localhost:5173"),
+		StaticDir:       get("STATIC_DIR", ""),
 		Env:             get("ENV", "development"),
 		AccessTokenTTL:  15 * time.Minute,
 		RefreshTokenTTL: 7 * 24 * time.Hour,

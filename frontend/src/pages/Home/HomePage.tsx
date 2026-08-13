@@ -36,11 +36,14 @@ export function HomePage() {
   const reduce = useReducedMotion()
   const stage = useRef<HTMLDivElement>(null)
   const popular = useQuery({ queryKey: ['popular'], queryFn: api.popular })
+  const catalog = useQuery({ queryKey: ['pens', { limit: 500 }], queryFn: () => api.pens({ limit: 500 }) })
   const brands = useQuery({ queryKey: ['brands'], queryFn: api.brands })
   const reviews = useQuery({ queryKey: ['recent-reviews'], queryFn: api.recentReviews })
   const guides = useQuery({ queryKey: ['guides'], queryFn: api.guides })
   const [guidePurpose, setGuidePurpose] = useState('study')
-  const pens = popular.data?.items?.length ? popular.data.items.slice(0, 4) : demoPens
+  const pens = popular.data?.items?.length ? popular.data.items.slice(0, 8) : demoPens
+  const catalogItems = catalog.data?.items ?? []
+  const catalogTotal = catalog.data?.total ?? catalogItems.length
   const guide = (guides.data?.items ?? []).find((g) => g.purpose === guidePurpose) ?? guides.data?.items?.[0]
 
   const onMove = (e: MouseEvent<HTMLDivElement>) => {
@@ -200,6 +203,26 @@ export function HomePage() {
             {pens.map((p) => (
               <PenCard key={p.id} pen={p} />
             ))}
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal>
+        <section className="mx-auto max-w-6xl px-4 py-16">
+          <SectionHeading
+            eyebrow="Katalog"
+            title={`${catalogTotal || 'Tüm'} kalem, API’den`}
+            body="Liste statik değil. Keşif sayfasındaki her model canlı katalogdan geliyor."
+          />
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {catalogItems.slice(0, 8).map((p) => (
+              <PenCard key={p.id} pen={p} />
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link to="/pens" className="text-sm underline">
+              {catalogTotal} kalemin tümünü gör
+            </Link>
           </div>
         </section>
       </Reveal>

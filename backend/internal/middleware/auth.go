@@ -18,8 +18,7 @@ const UserEmailKey = "user_email"
 func CORS(cfg config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		allowed := cfg.FrontendURL
-		if origin == allowed || (cfg.IsDev() && strings.HasPrefix(origin, "http://localhost")) {
+		if originAllowed(origin, cfg) {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Credentials", "true")
 			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
@@ -31,6 +30,22 @@ func CORS(cfg config.Config) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func originAllowed(origin string, cfg config.Config) bool {
+	if origin == "" {
+		return false
+	}
+	if cfg.IsDev() && strings.HasPrefix(origin, "http://localhost") {
+		return true
+	}
+	for _, raw := range strings.Split(cfg.FrontendURL, ",") {
+		allowed := strings.TrimSpace(raw)
+		if allowed != "" && origin == allowed {
+			return true
+		}
+	}
+	return false
 }
 
 func Auth(secret string) gin.HandlerFunc {

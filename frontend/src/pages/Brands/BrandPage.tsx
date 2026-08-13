@@ -14,8 +14,8 @@ export function BrandPage() {
     enabled: Boolean(slug),
   })
   const pens = useQuery({
-    queryKey: ['pens', { brand: slug, limit: 48 }],
-    queryFn: () => api.pens({ brand: slug, limit: 48 }),
+    queryKey: ['pens', { brand: slug, limit: 500 }],
+    queryFn: () => api.pens({ brand: slug, limit: 500 }),
     enabled: Boolean(slug),
   })
   const favorites = useQuery({

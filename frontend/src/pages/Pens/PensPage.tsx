@@ -30,6 +30,9 @@ export function PensPage() {
   const purpose = params.get('purpose') ?? ''
   const guide = guides.data?.items.find((g) => g.purpose === purpose)
 
+  const priceTouched = minPrice !== '0' || maxPrice !== '30000'
+  const weightTouched = minWeight !== '5' || maxWeight !== '50'
+
   const filters = useMemo(
     () => ({
       brand: params.get('brand') ?? undefined,
@@ -38,21 +41,21 @@ export function PensPage() {
       tip_size: params.get('tip_size') ?? undefined,
       color: params.get('color') ?? undefined,
       purpose: purpose || undefined,
-      min_price: Number(minPrice) || undefined,
-      max_price: Number(maxPrice) || undefined,
-      min_weight: Number(minWeight) || undefined,
-      max_weight: Number(maxWeight) || undefined,
+      min_price: priceTouched ? Number(minPrice) : undefined,
+      max_price: priceTouched ? Number(maxPrice) : undefined,
+      min_weight: weightTouched ? Number(minWeight) : undefined,
+      max_weight: weightTouched ? Number(maxWeight) : undefined,
       min_rating: params.get('min_rating') ? Number(params.get('min_rating')) : undefined,
       page,
-      limit: 48,
+      limit: 500,
     }),
-    [params, minPrice, maxPrice, minWeight, maxWeight, page, purpose],
+    [params, minPrice, maxPrice, minWeight, maxWeight, page, purpose, priceTouched, weightTouched],
   )
 
   const pens = useQuery({ queryKey: ['pens', filters], queryFn: () => api.pens(filters) })
   const favIds = favorites.data?.items.map((p) => p.id) ?? []
   const total = pens.data?.total ?? 0
-  const pages = Math.max(1, Math.ceil(total / 48))
+  const pages = Math.max(1, Math.ceil(total / 500))
 
   const set = (k: string, v: string) => {
     const next = new URLSearchParams(params)

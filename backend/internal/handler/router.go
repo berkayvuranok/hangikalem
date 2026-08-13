@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"hangikalem/internal/middleware"
@@ -58,6 +61,26 @@ func (a *API) Router(rdb *redis.Client) *gin.Engine {
 			admin.GET("/db", a.AdminTables)
 			admin.GET("/db/:table", a.AdminTableRows)
 		}
+	}
+
+	if dir := strings.TrimSpace(a.Cfg.StaticDir); dir != "" {
+		r.NoRoute(func(c *gin.Context) {
+			if strings.HasPrefix(c.Request.URL.Path, "/api") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+				return
+			}
+			reqPath := c.Request.URL.Path
+			if reqPath == "/" {
+				c.File(dir + "/index.html")
+				return
+			}
+			full := dir + reqPath
+			if info, err := os.Stat(full); err == nil && !info.IsDir() {
+				c.File(full)
+				return
+			}
+			c.File(dir + "/index.html")
+		})
 	}
 	return r
 }
